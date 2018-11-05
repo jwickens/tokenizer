@@ -26,7 +26,7 @@ POST /tokenize
 
 const Tokenizer = require('../src/Tokenizer');
 
-test('Tokenizer.tokenize() throws an Error when invalid input provided', () => {
+test('Tokenizer.tokenize() throws an Error when invalid input provided', async () => {
   const invalidInputs = [
 	{"cc_number": true},
 	{"cc_number": null},
@@ -34,14 +34,19 @@ test('Tokenizer.tokenize() throws an Error when invalid input provided', () => {
 	{"ccnumber": "378282246310005"},
   ];
   const tokenizer = new Tokenizer();
-  invalidInputs.forEach(invalidInput => {
-	expect(() => {
-		tokenizer.tokenize(invalidInput);
-	}).toThrow();
+  let errors = 0
+  const promises = invalidInputs.map(async invalidInput => {
+      try {
+		await tokenizer.tokenize(invalidInput);
+      } catch (err) {
+          errors += 1
+      }
   });
+  await Promise.all(promises)
+  expect(errors).toBe(invalidInputs.length)
 });
 
-test('Tokenizer.tokenize() returns a token for valid input', () => {
+test('Tokenizer.tokenize() returns a token for valid input', async () => {
 	const validInputs = [
 		{"cc_number": "2222111100009999"},
 		{"cc_number": "4242424242424242"}, // VISA
@@ -49,10 +54,12 @@ test('Tokenizer.tokenize() returns a token for valid input', () => {
 		{"cc_number": "378282246310005"}, // AMEX
 	];
 	const tokenizer = new Tokenizer();
-	validInputs.forEach(validInput => {
-	  	const output = tokenizer.tokenize(validInput)
+	const promises = validInputs.map(async validInput => {
+	  	const output = await tokenizer.tokenize(validInput)
 		expect(output).toBeDefined();
 		expect(output).toHaveProperty('token');
-		expect(typeof output.token).toBe('string');
-	});
+        expect(typeof output.token).toBe('string');
+        expect(output.token).toHaveLength(20);
+    });
+    await Promise.all(promises)
   });
