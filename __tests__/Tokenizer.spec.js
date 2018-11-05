@@ -46,7 +46,8 @@ test('Tokenizer.tokenize() throws an Error when invalid input provided', async (
   expect(errors).toBe(invalidInputs.length)
 });
 
-test('Tokenizer.tokenize() returns a token for valid input', async () => {
+test('Tokenizer.tokenize() returns a token for valid input and appropriately untokenizes', async () => {
+  // tokenize valid credit card numbers
 	const validInputs = [
 		{"cc_number": "2222111100009999"},
 		{"cc_number": "4242424242424242"}, // VISA
@@ -55,11 +56,19 @@ test('Tokenizer.tokenize() returns a token for valid input', async () => {
 	];
 	const tokenizer = new Tokenizer();
 	const promises = validInputs.map(async validInput => {
-	  	const output = await tokenizer.tokenize(validInput)
-		expect(output).toBeDefined();
-		expect(output).toHaveProperty('token');
-        expect(typeof output.token).toBe('string');
-        expect(output.token).toHaveLength(20);
-    });
-    await Promise.all(promises)
+    const output = await tokenizer.tokenize(validInput)
+    expect(output).toBeDefined();
+    expect(output).toHaveProperty('token');
+    expect(typeof output.token).toBe('string');
+    expect(output.token).toHaveLength(20);
   });
+  await Promise.all(promises);
+  // ensure tokenizer.tokens correctly seeded w/ cc number inputs
+  const creditCardNumbers = validInputs.map(validInput => validInput.cc_number);
+  expect(creditCardNumbers).toEqual(Object.values(tokenizer.tokens));
+  // ensure untokenize maps to inputed cc numbers
+  Object.keys(tokenizer.tokens).forEach(token => {
+    const creditCardNumber = tokenizer.untokenize(token);
+    expect(creditCardNumbers).toContain(creditCardNumber);
+  });
+});
